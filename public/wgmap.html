@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <link rel='shortcut icon' href='favicon.png' type='image/x-icon'/ >
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+    <style type="text/css">
+      html { 
+        height: 100% 
+      }
+      body { 
+        height: 100%; 
+        width:100%; 
+        margin: 20px; 
+        padding:0px 
+      }
+      #map_canvas { 
+        height: 95%;
+        width: 75%; 
+      }
+      .flex-container {
+        display: flex;
+        margin: 20 px;
+        background-color: cornflowerblue;
+}
+    </style>
+    <script type="text/javascript"
+       src="https://code.jquery.com/jquery-3.1.0.min.js"
+       integrity="sha256-cCueBR6CsyA4/9szpPfrX3s49M9vUU5BgtiJj06wt/s="
+       crossorigin="anonymous">
+    </script>
+    <script type="text/javascript"
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAxtCQW17aKHnXyHlLaoJVDi6IQIExzwoM&sensor=true">
+    </script>
+    <script type="text/javascript">
+
+      function initialize() {
+        var myLatLng = {lat: 40.015086, lng: -105.229676
+        };
+        var mapOptions = {
+          center: myLatLng,
+          zoom: 10,
+          mapTypeId: google.maps.MapTypeId.HYBRID
+        };
+        var map = new google.maps.Map(document.getElementById("map_canvas"),
+            //mapOptions);
+
+        var marker = new google.maps.Marker({
+          map: map,
+          position: myLatLng,
+          title: 'CodeCraft - "Center of the Universe"',
+          animation: google.maps.Animation.DROP
+        });
+
+        var marker2 = new google.maps.Marker({
+          map: map,
+          position: {lat: 40.019080, lng: -105.235670},
+          title: 'Pokemon Monster1',
+          icon:'./favicon.png',
+          animation: google.maps.Animation.BOUNCE
+          });
+      }
+      
+      function showMarker(markerArr){
+          var map = new google.maps.Map(document.getElementById("map_canvas"),
+            mapOptions);
+          var pointMarker = [];
+          for (var i in markerArr){
+            console.log('i = '+i);
+           pointMarker[i] = new google.maps.Marker({
+              map:map,
+              position: {lat:markerArr[i].lat,lng: markerArr[i].long},
+              title: markerArr[i].id,
+              icon:'./favicon.png',
+              //animation: google.maps.Animation.BOUNCE
+            });
+            console.log("marker " + pointMarker[i]);
+            google.maps.event.addListener(pointMarker, 'click', (function(pointMarker, i) {
+              return function() {
+               //infowindow.setContent(locations[i][0]);
+               infowindow.open(map, pointMarker);
+              }
+            })(pointMarker, i));
+          }
+      }
+
+    function showAllPokemon() 
+    {
+      console.log("showing Pokemon");
+      $.get(
+        '/api/sighting', // GET the route /api/sighting
+        function(data)
+        { //handle the data it returns
+          $('#outStatement').html("A list of all Pokéman which are less than 10 minutes old... "); 
+          $('#output').html(""); //reset our output element
+          var myMarkers = [];
+          for (var i = 0; i < data.length; i++) 
+          { //for each datum
+            $('#output').append('<p>' + data[i].pokemonId + " " + data[i].locStr + "  " + data[i].lat + "  " + data[i].long + '</p>');
+              var marker = {lat:parseFloat(data[i].lat), long:parseFloat(data[i].long), id:data[i].pokemonId};
+              myMarkers.push(marker);
+          }
+          console.log (myMarkers);
+          showMarker(myMarkers);
+        },
+        'json' //interpret the incoming data as a JSON object (JSON.parse)
+      );
+    }
+
+    function sendPokemon() {
+      console.log("sending Pokemon");
+      $.post(
+        '/api/sighting', // route
+        {
+          locStr: $('#locStr').val(),
+          pokemonId: $('#pokemonId').val()
+        }, //req.body object
+        function(data){
+          if (data == "success") {
+            showAllPokemon();
+          }
+        } //callback function
+      );
+    }
+
+    function logOut() {
+      console.log("logoutX  ");
+      $.post(
+        '/api/logout', // route
+        {}, //req."success at logging out");
+        function (data){
+          if (data == "success"){
+            document.location = "/index.html";
+          } else {
+            $('#error').html("You were not logged out!!!");
+          }
+        }
+      );
+    }
+
+    function idFilter()
+    {
+      pokeId = $('#pokemonId').val();
+      locStr = $('#locStr').val();
+      if (pokeId && !locStr){
+        console.log("filtering on pokeID");
+        $.get("/api/sighting/id/"+pokeId,
+          {
+            //locStr: $('#locStr').val(),
+            //Id: $('#pokemonId').val()
+          },
+          function (data)
+          {
+            $('#outStatement').html("A list Pokéman with Id " + pokeId); 
+            $('#output').html(""); //reset our output element
+            for (var i = 0; i < data.length; i++) 
+            { //for each datum
+              $('#output').append('<p>' + data[i].pokemonId + " " + data[i].locStr + "  " + data[i].lat + "  " + data[i].long +'</p>');
+            }
+          }, 'json'
+        );
+      } else if (locStr) {
+        $.get("/api/sighting/city/"+locStr,
+          {
+            //locStr: $('#locStr').val(),
+            //Id: $('#pokemonId').val()
+          },
+          function (data)
+          {
+            $('#outStatement').html("A list Pokéman at location " + locStr); 
+            $('#output').html(""); //reset our output element
+            for (var i = 0; i < data.length; i++) 
+            { //for each datum
+              $('#output').append('<p>' + data[i].pokemonId + " " + data[i].locStr +"  " + data[i].lat + "  " + data[i].long +'</p>');
+            }
+          }, 'json'
+        );
+
+      } else {
+        $('#outStatement').html('You need to enter a location or Pokémon ID to filter.')
+        $('#output').html("");
+      }
+    }
+
+    $(document).ready(function() {
+      showAllPokemon();
+      $('#submit').click(sendPokemon);
+      $('#logout').click(logOut);
+      $('#filtering').click(idFilter);
+    });
+
+
+    </script>
+
+
+
+  </head>
+  <body onload="initialize()" class=flex-container>
+      <div id="map_canvas"></div>
+      <div = class>   
+        <p></p>
+        <p></p> 
+        <label for="locStr">Location: <input type="text" id="locStr" placeholder="Enter Pokémon Location"></label>
+        <label for="pokemonId">Pokemon: <input type="text" id="pokemonId" placeholder="Enter Pokémon Id"></label>
+        <input type="button" id="submit" value="Send Loc">
+        <div>
+          <input type="button" id="filtering" value="Filter on Location OR Id, not both">
+          <input type="button" id="logout" value="Logout">
+          <form>
+            <button formaction="./map.html">Go to page withOUT a Google Map!</button>
+          </form>
+        </div>
+        <div id="outStatement"></div>
+        <div id="output"></div></div>
+  </body>
+</html>

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<link rel='shortcut icon' href='favicon.png' type='image/x-icon'/ >
+	<link href='https://fonts.googleapis.com/css?family=Montserrat' rel='stylesheet' type='text/css'>
+	<title>PokéTrack</title>
+	<style>
+		body {
+			background-color:cornflowerblue;
+			font-family: 'Montserrat', sans-serif;
+			font-size: 24px
+		}
+		#locStr, #pokemonId, #submit, #filtering, #logout, #outStatement, #output {
+			font-family: 'Montserrat', sans-serif;
+			font-size: 24px
+		}
+	</style>
+	<script type="text/javascript"
+		src="https://code.jquery.com/jquery-3.1.0.min.js"
+		integrity="sha256-cCueBR6CsyA4/9szpPfrX3s49M9vUU5BgtiJj06wt/s="
+		crossorigin="anonymous">
+	</script>
+	<script>
+
+	function showAllPokemon() 
+	{
+		console.log("showing Pokemon");
+		$.get(
+			'/api/sighting', // GET the route /api/sighting
+			function(data)
+			{ //handle the data it returns
+				$('#outStatement').html("A list of all Pokéman which are less than 10 minutes old... "); 
+				$('#output').html(""); //reset our output element
+				for (var i = 0; i < data.length; i++) 
+				{ //for each datum
+					$('#output').append('<p>' + data[i].pokemonId + " " + data[i].locStr +'</p>');
+				}
+			},
+			'json' //interpret the incoming data as a JSON object (JSON.parse)
+		);
+	}
+
+	function sendPokemon() {
+		console.log("sending Pokemon");
+		$.post(
+			'/api/sighting', // route
+			{
+				locStr: $('#locStr').val(),
+				pokemonId: $('#pokemonId').val()
+			}, //req.body object
+			function(data){
+				if (data == "success") {
+					showAllPokemon();
+				}
+			} //callback function
+		);
+	}
+
+	function logOut() {
+		console.log("logoutX  ");
+		$.post(
+			'/api/logout', // route
+			{}, //req."success at logging out");
+			function (data){
+				if (data == "success"){
+					document.location = "/index.html";
+				} else {
+					$('#error').html("You were not logged out!!!");
+				}
+			}
+		);
+	}
+
+	function idFilter()
+	{
+		pokeId = $('#pokemonId').val();
+		locStr = $('#locStr').val();
+		if (pokeId && !locStr){
+			console.log("filtering on pokeID");
+			$.get("/api/sighting/id/"+pokeId,
+				{
+					//locStr: $('#locStr').val(),
+					//Id: $('#pokemonId').val()
+				},
+				function (data)
+				{
+					$('#outStatement').html("A list Pokéman with Id " + pokeId); 
+					$('#output').html(""); //reset our output element
+					for (var i = 0; i < data.length; i++) 
+					{ //for each datum
+						$('#output').append('<p>' + data[i].pokemonId + " " + data[i].locStr +'</p>');
+					}
+				}, 'json'
+			);
+		} else if (locStr) {
+			console.log("filtering on locStr");
+			$.get("/api/sighting/city/"+locStr,
+				{
+					//locStr: $('#locStr').val(),
+					//Id: $('#pokemonId').val()
+				},
+				function (data)
+				{
+					$('#outStatement').html("A list Pokéman at location " + locStr); 
+					$('#output').html(""); //reset our output element
+					for (var i = 0; i < data.length; i++) 
+					{ //for each datum
+						$('#output').append('<p>' + data[i].pokemonId + " " + data[i].locStr +'</p>');
+					}
+				}, 'json'
+			);
+		} else {
+			$('#outStatement').html('You need to enter a location or Pokémon ID to filter.')
+        	$('#output').html("");
+		}
+	}
+
+	$(document).ready(function() {
+		showAllPokemon();
+		$('#submit').click(sendPokemon);
+		$('#logout').click(logOut);
+		$('#filtering').click(idFilter);
+	});
+
+	</script>
+</head>
+<body>
+	<p></p>
+	<p></p>	
+	<label for="locStr">Location: <input type="text" id="locStr" placeholder="Enter Pokémon Location"></label>
+	<label for="pokemonId">Pokemon: <input type="text" id="pokemonId" placeholder="Enter Pokémon Id"></label>
+	
+	<div>
+		<input type="button" id="submit" value="Send Loc">
+		<input type="button" id="filtering" value="Filter on Location OR Id, not both">
+		<input type="button" id="logout" value="Logout">
+<!-- 		<form>
+    		<button formaction="./wgmap.html">Go to page with a Google Map!</button>
+    	</form> broken-->
+	</div>
+	<div id="outStatement"></div>
+	<div id="output"></div>
+</body>
+</html>
